@@ -1,220 +1,460 @@
 <!DOCTYPE html>
-
-<html>
-
+<html lang="fa" dir="rtl">
 <head>
-
-<title>ESP32 Control</title>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESP32 Control Panel</title>
 
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Vazirmatn:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 
 <style>
+  :root{
+    --bg:#0a0f12;
+    --panel:#121a1f;
+    --panel-2:#0e1518;
+    --line:#1f2c33;
 
-body{
-font-family:tahoma;
-text-align:center;
-background:#222;
-color:white;
-}
+    --on:#2ee6a8;
+    --on-dim:#12362d;
+    --off:#4c5a61;
+    --off-dim:#1a2226;
+    --warn:#f5a94e;
+    --warn-dim:#3a2c14;
+    --error:#ff5d6c;
+    --error-dim:#3a1518;
 
-button{
+    --text:#eef4f6;
+    --text-dim:#7d8c93;
 
-width:120px;
-height:50px;
-margin:10px;
-font-size:18px;
+    --font-display:'Space Grotesk','Vazirmatn',sans-serif;
+    --font-body:'Vazirmatn',sans-serif;
+    --font-mono:'JetBrains Mono',monospace;
+  }
 
-}
+  *{ box-sizing:border-box; }
 
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 15% -10%, #14252b 0%, transparent 45%),
+      radial-gradient(circle at 100% 110%, #16211f 0%, transparent 50%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    padding:32px 16px 64px;
+  }
 
-.card{
+  .wrap{
+    max-width:520px;
+    margin:0 auto;
+  }
 
-background:#333;
-padding:20px;
-margin:20px;
-border-radius:20px;
+  /* ---------- header ---------- */
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:28px;
+  }
 
-}
+  h1{
+    font-family:var(--font-display);
+    font-size:22px;
+    font-weight:700;
+    letter-spacing:.2px;
+    margin:0;
+  }
 
+  h1 span{
+    display:block;
+    font-family:var(--font-mono);
+    font-size:11px;
+    font-weight:500;
+    color:var(--text-dim);
+    letter-spacing:1px;
+    margin-top:4px;
+  }
+
+  .board-pill{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:8px 14px;
+    font-family:var(--font-mono);
+    font-size:12px;
+    white-space:nowrap;
+  }
+
+  .dot{
+    width:9px;
+    height:9px;
+    border-radius:50%;
+    background:var(--off);
+    flex:none;
+  }
+
+  .dot.online{ background:var(--on); box-shadow:0 0 0 0 rgba(46,230,168,.5); animation:pulse 2s infinite; }
+  .dot.offline{ background:var(--error); }
+  .dot.connecting{ background:var(--warn); animation:pulse-warn 1s infinite; }
+
+  @keyframes pulse{
+    0%{ box-shadow:0 0 0 0 rgba(46,230,168,.45); }
+    70%{ box-shadow:0 0 0 7px rgba(46,230,168,0); }
+    100%{ box-shadow:0 0 0 0 rgba(46,230,168,0); }
+  }
+  @keyframes pulse-warn{
+    0%,100%{ opacity:1; } 50%{ opacity:.35; }
+  }
+
+  /* ---------- cards ---------- */
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:20px 20px 8px;
+    margin-bottom:20px;
+  }
+
+  .card h2{
+    font-family:var(--font-display);
+    font-size:13px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    color:var(--text-dim);
+    margin:0 0 14px;
+  }
+
+  /* ---------- relay rows ---------- */
+  .relay-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    padding:14px 4px;
+    border-bottom:1px solid var(--line);
+  }
+  .relay-row:last-child{ border-bottom:none; }
+
+  .relay-info{
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+
+  .relay-led{
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    background:var(--off);
+    flex:none;
+    transition:background .2s;
+  }
+  .relay-led.on{ background:var(--on); box-shadow:0 0 8px 1px rgba(46,230,168,.6); }
+  .relay-led.pending{ background:var(--warn); animation:pulse-warn 1s infinite; }
+
+  .relay-name{
+    font-weight:600;
+    font-size:15px;
+  }
+
+  .relay-state{
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--text-dim);
+    letter-spacing:.5px;
+    margin-top:2px;
+  }
+
+  /* toggle switch */
+  .switch{
+    position:relative;
+    width:52px;
+    height:30px;
+    flex:none;
+  }
+  .switch input{
+    opacity:0;
+    width:100%;
+    height:100%;
+    margin:0;
+    position:absolute;
+    inset:0;
+    cursor:pointer;
+    z-index:2;
+  }
+  .switch .track{
+    position:absolute;
+    inset:0;
+    background:var(--off-dim);
+    border:1px solid var(--line);
+    border-radius:999px;
+    transition:background .2s, border-color .2s;
+  }
+  .switch .thumb{
+    position:absolute;
+    top:3px; right:3px;
+    width:22px; height:22px;
+    border-radius:50%;
+    background:var(--off);
+    transition:transform .2s, background .2s;
+  }
+  .switch input:checked + .track{
+    background:var(--on-dim);
+    border-color:rgba(46,230,168,.4);
+  }
+  .switch input:checked + .track + .thumb{
+    transform:translateX(-22px);
+    background:var(--on);
+  }
+  .switch input:disabled + .track + .thumb{
+    background:var(--warn);
+  }
+
+  /* ---------- sensor ---------- */
+  .sensor-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    padding-bottom:20px;
+  }
+  .sensor-box{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:16px;
+    text-align:center;
+  }
+  .sensor-box .label{
+    font-size:11px;
+    color:var(--text-dim);
+    letter-spacing:1px;
+    text-transform:uppercase;
+    font-family:var(--font-mono);
+  }
+  .sensor-box .value{
+    font-family:var(--font-mono);
+    font-size:30px;
+    font-weight:600;
+    margin-top:6px;
+  }
+  .sensor-box .value sup{
+    font-size:15px;
+    color:var(--text-dim);
+    font-weight:500;
+  }
+
+  footer{
+    text-align:center;
+    font-size:11px;
+    color:var(--text-dim);
+    margin-top:24px;
+    font-family:var(--font-mono);
+  }
 </style>
-
 </head>
 
-
 <body>
+<div class="wrap">
 
+  <header>
+    <h1>پنل کنترل خانه<span>ESP32 · HiveMQ · MQTT</span></h1>
+    <div class="board-pill">
+      <div class="dot connecting" id="boardDot"></div>
+      <span id="boardText">در حال اتصال…</span>
+    </div>
+  </header>
 
-<h1>
-ESP32 Remote Control
-</h1>
+  <div class="card">
+    <h2>کنترل رله‌ها</h2>
 
+    <div class="relay-row" data-relay="1">
+      <div class="relay-info">
+        <div class="relay-led" id="led1"></div>
+        <div>
+          <div class="relay-name">رله ۱</div>
+          <div class="relay-state" id="state1">نامشخص</div>
+        </div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="sw1" onchange="toggleRelay(1,this)">
+        <span class="track"></span>
+        <span class="thumb"></span>
+      </label>
+    </div>
 
-<div class="card">
+    <div class="relay-row" data-relay="2">
+      <div class="relay-info">
+        <div class="relay-led" id="led2"></div>
+        <div>
+          <div class="relay-name">رله ۲</div>
+          <div class="relay-state" id="state2">نامشخص</div>
+        </div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="sw2" onchange="toggleRelay(2,this)">
+        <span class="track"></span>
+        <span class="thumb"></span>
+      </label>
+    </div>
 
-<h2>Relay Control</h2>
+    <div class="relay-row" data-relay="3">
+      <div class="relay-info">
+        <div class="relay-led" id="led3"></div>
+        <div>
+          <div class="relay-name">رله ۳</div>
+          <div class="relay-state" id="state3">نامشخص</div>
+        </div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="sw3" onchange="toggleRelay(3,this)">
+        <span class="track"></span>
+        <span class="thumb"></span>
+      </label>
+    </div>
 
+    <div class="relay-row" data-relay="4">
+      <div class="relay-info">
+        <div class="relay-led" id="led4"></div>
+        <div>
+          <div class="relay-name">رله ۴</div>
+          <div class="relay-state" id="state4">نامشخص</div>
+        </div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="sw4" onchange="toggleRelay(4,this)">
+        <span class="track"></span>
+        <span class="thumb"></span>
+      </label>
+    </div>
+  </div>
 
-<button onclick="send('relay1_on')">
-Relay 1 ON
-</button>
+  <div class="card">
+    <h2>سنسور محیط</h2>
+    <div class="sensor-grid">
+      <div class="sensor-box">
+        <div class="label">دما</div>
+        <div class="value"><span id="temp">--</span><sup>°C</sup></div>
+      </div>
+      <div class="sensor-box">
+        <div class="label">رطوبت</div>
+        <div class="value"><span id="hum">--</span><sup>%</sup></div>
+      </div>
+    </div>
+  </div>
 
-<button onclick="send('relay1_off')">
-Relay 1 OFF
-</button>
-
-
-
-<br>
-
-
-<button onclick="send('relay2_on')">
-Relay 2 ON
-</button>
-
-<button onclick="send('relay2_off')">
-Relay 2 OFF
-</button>
-
-
-<br>
-
-
-<button onclick="send('relay3_on')">
-Relay 3 ON
-</button>
-
-<button onclick="send('relay3_off')">
-Relay 3 OFF
-</button>
-
-
-<br>
-
-
-<button onclick="send('relay4_on')">
-Relay 4 ON
-</button>
-
-<button onclick="send('relay4_off')">
-Relay 4 OFF
-</button>
-
+  <footer id="mqttStatus">اتصال به بروکر برقرار نیست</footer>
 
 </div>
-
-
-
-<div class="card">
-
-<h2>
-Sensor
-</h2>
-
-
-<h3>
-Temperature:
-<span id="temp">
---
-</span>
-°C
-</h3>
-
-
-<h3>
-Humidity:
-<span id="hum">
---
-</span>
-%
-</h3>
-
-
-</div>
-
-
-
 
 <script>
+const broker = "wss://279d1c30c53e417b9a7355326f379152.s1.eu.hivemq.cloud:8884/mqtt";
 
+const RELAY_TOPIC       = "home/esp32/relay";
+const RELAY_STATE_TOPIC = "home/esp32/relay/state";
+const SENSOR_TOPIC      = "home/esp32/sensor";
+const STATUS_TOPIC      = "home/esp32/status";
 
-const broker =
-"wss://279d1c30c53e417b9a7355326f379152.s1.eu.hivemq.cloud:8884/mqtt";
-
-
-
-const client =
-mqtt.connect(broker,{
-
-username:"ESP32-01",
-
-password:"ESP32.23"
-
+const client = mqtt.connect(broker, {
+  username: "ESP32-01",
+  password: "ESP32.23",
+  reconnectPeriod: 3000
 });
 
+// هر رله یک تایمر "در انتظار تایید" دارد، تا اگر برد جواب ندهد کلید به حالت قبلی برگردد
+const pendingTimers = {1:null,2:null,3:null,4:null};
 
-
-
-
-client.on("connect",()=>{
-
-
-console.log("connected");
-
-
-client.subscribe(
-"home/esp32/sensor"
-);
-
-
-});
-
-
-
-
-
-
-function send(cmd)
-{
-
-
-client.publish(
-"home/esp32/relay",
-cmd
-);
-
-
+function setBoardStatus(state){
+  const dot = document.getElementById("boardDot");
+  const text = document.getElementById("boardText");
+  dot.className = "dot " + state;
+  if(state === "online"){ text.textContent = "برد آنلاین"; }
+  else if(state === "offline"){ text.textContent = "برد آفلاین"; }
+  else { text.textContent = "در حال اتصال…"; }
 }
 
+function setRelayUI(i, on){
+  document.getElementById("sw"+i).checked = on;
+  document.getElementById("sw"+i).disabled = false;
+  document.getElementById("led"+i).className = "relay-led" + (on ? " on" : "");
+  document.getElementById("state"+i).textContent = on ? "روشن" : "خاموش";
+}
 
+function setRelayPending(i){
+  document.getElementById("led"+i).className = "relay-led pending";
+  document.getElementById("state"+i).textContent = "در حال ارسال…";
+  document.getElementById("sw"+i).disabled = true;
+}
 
-
-
-
-client.on("message",(topic,message)=>{
-
-
-let data=
-JSON.parse(message.toString());
-
-
-
-document.getElementById("temp").innerHTML =
-data.temperature;
-
-document.getElementById("hum").innerHTML =
-data.humidity;
-
-
-
+client.on("connect", () => {
+  document.getElementById("mqttStatus").textContent = "متصل به بروکر MQTT";
+  client.subscribe(SENSOR_TOPIC);
+  client.subscribe(RELAY_STATE_TOPIC);
+  client.subscribe(STATUS_TOPIC);
 });
 
+client.on("reconnect", () => {
+  document.getElementById("mqttStatus").textContent = "در حال اتصال مجدد به بروکر…";
+});
 
+client.on("close", () => {
+  document.getElementById("mqttStatus").textContent = "اتصال به بروکر قطع شد";
+  setBoardStatus("connecting");
+});
 
+function toggleRelay(i, el){
+  const on = el.checked;
+  setRelayPending(i);
+
+  client.publish(RELAY_TOPIC, "relay" + i + "_" + (on ? "on" : "off"));
+
+  // اگر تا ۵ ثانیه دیگر تاییدیه‌ی وضعیت از برد نرسید، کلید را به حالت قبلی برگردان
+  clearTimeout(pendingTimers[i]);
+  pendingTimers[i] = setTimeout(() => {
+    // اگر برد آفلاین است پیام خطا نشان بده و کلید را برگردان
+    document.getElementById("state"+i).textContent = "بدون پاسخ از برد";
+    document.getElementById("led"+i).className = "relay-led";
+    document.getElementById("sw"+i).checked = !on;
+    document.getElementById("sw"+i).disabled = false;
+  }, 5000);
+}
+
+client.on("message", (topic, message) => {
+  const payload = message.toString();
+
+  if(topic === SENSOR_TOPIC){
+    try{
+      const data = JSON.parse(payload);
+      document.getElementById("temp").textContent = Number(data.temperature).toFixed(1);
+      document.getElementById("hum").textContent = Number(data.humidity).toFixed(1);
+    }catch(e){ /* پیام نامعتبر - نادیده گرفته شود */ }
+  }
+
+  if(topic === STATUS_TOPIC){
+    setBoardStatus(payload === "online" ? "online" : "offline");
+  }
+
+  if(topic === RELAY_STATE_TOPIC){
+    try{
+      const data = JSON.parse(payload);
+      for(let i = 1; i <= 4; i++){
+        if(data["relay"+i] !== undefined){
+          clearTimeout(pendingTimers[i]);
+          setRelayUI(i, data["relay"+i] === "ON");
+        }
+      }
+    }catch(e){ /* پیام نامعتبر - نادیده گرفته شود */ }
+  }
+});
 </script>
 
-
 </body>
-
 </html>
