@@ -259,10 +259,51 @@
     margin-top:24px;
     font-family:var(--font-mono);
   }
+
+  .login-screen{max-width:420px;margin:8vh auto 24px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:28px 22px;text-align:center;box-shadow:0 18px 55px rgba(0,0,0,.25)}
+  .login-screen h2{margin:0 0 8px;font-size:21px}
+  .login-screen p{color:var(--text-dim);font-size:13px;line-height:1.9;margin:8px 0 18px}
+  .login-screen input{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);color:var(--text);font:inherit;outline:none;margin-bottom:12px}
+  .login-screen input:focus{border-color:var(--on)}
+  .login-screen button{width:100%;padding:12px;border:0;border-radius:10px;background:var(--on);color:#06251b;font:600 14px var(--font-body);cursor:pointer}
+  .login-error{min-height:22px;color:var(--error);font-size:12px;margin-top:10px}
+  .contact-line{font-size:12px;color:var(--text-dim);margin-top:18px;line-height:1.9}
+  .contact-line a{color:var(--on);text-decoration:none}
+  .wrap{display:none}
+
 </style>
 </head>
 
 <body>
+<div class="login-screen" id="loginScreen">
+  <h2>ورود به پنل کنترل</h2>
+  <p>برای دسترسی به کنترل رله‌ها، رمز عبور را وارد کنید.</p>
+  <form onsubmit="unlockPanel(event)">
+    <input id="panelPassword" type="password" placeholder="رمز عبور" autocomplete="current-password" required>
+    <button type="submit">ورود به پنل</button>
+    <div class="login-error" id="loginError" role="alert"></div>
+  </form>
+  <div class="contact-line">مدیریت: <strong>شاهدی</strong><br>تلفن: <a href="tel:09399636246">09399636246</a></div>
+</div>
+<script>
+// توجه: این رمز در کد صفحه قابل مشاهده است و فقط مانع ورود عادی می‌شود.
+// مقدار زیر را با رمز دلخواه خود عوض کنید؛ برای امنیت واقعی، احراز هویت سمت سرور و محدودسازی ACL در HiveMQ لازم است.
+const PANEL_PASSWORD = "09126891926";
+function unlockPanel(event){
+  event.preventDefault();
+  const field = document.getElementById('panelPassword');
+  if(field.value === PANEL_PASSWORD){
+    document.getElementById('loginScreen').style.display = 'none';
+    document.querySelector('.wrap').style.display = 'block';
+    startApp();
+  } else {
+    document.getElementById('loginError').textContent = 'رمز عبور اشتباه است.';
+    field.value = '';
+    field.focus();
+  }
+}
+</script>
+
 <div class="wrap">
 
   <header>
@@ -352,10 +393,12 @@
   </div>
 
   <footer id="mqttStatus">اتصال به بروکر برقرار نیست</footer>
+  <footer>مدیریت: <strong>شاهدی</strong> · تلفن: <a href="tel:09399636246" style="color:var(--on);text-decoration:none">09399636246</a></footer>
 
 </div>
 
 <script>
+function startApp(){
 const broker = "wss://279d1c30c53e417b9a7355326f379152.s1.eu.hivemq.cloud:8884/mqtt";
 
 const RELAY_TOPIC       = "home/esp32/relay";
@@ -454,6 +497,7 @@ client.on("message", (topic, message) => {
     }catch(e){ /* پیام نامعتبر - نادیده گرفته شود */ }
   }
 });
+}
 </script>
 
 </body>
