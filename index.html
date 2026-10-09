@@ -56,12 +56,18 @@
 
   /* ---------- header ---------- */
   header{
-    display:flex;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
     align-items:center;
-    justify-content:space-between;
     gap:12px;
     margin-bottom:28px;
   }
+  .header-clock{ text-align:center; min-width:92px; }
+  .header-clock .clock-time{font:700 22px var(--font-mono);letter-spacing:1px;color:var(--on);direction:ltr;}
+  .header-clock .clock-date{font-size:10px;color:var(--text-dim);margin-top:4px;white-space:nowrap;}
+  header h1{justify-self:start}
+  header .board-pill{justify-self:end}
+
 
   h1{
     font-family:var(--font-display);
@@ -260,6 +266,42 @@
     margin-top:24px;
     font-family:var(--font-mono);
   }
+
+  .contact-strip{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    flex-wrap:wrap;background:var(--panel-2);border:1px solid var(--line);
+    border-radius:12px;padding:11px 14px;margin:-12px 0 20px;font-size:12px;color:var(--text-dim)
+  }
+  .contact-strip strong{color:var(--text)}
+  .contact-strip a{color:var(--on);text-decoration:none;direction:ltr;unicode-bidi:embed}
+  .relay-block{border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:14px}
+  .relay-block:last-child{border-bottom:none;margin-bottom:0}
+  .relay-block .relay-row{border-bottom:none;padding-bottom:10px}
+  .relay-controls{display:flex;align-items:center;gap:10px;padding:0 2px;flex-wrap:wrap}
+  .schedule-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid #285044;border-radius:10px;padding:9px 13px;background:#102820;color:var(--on);font:12px var(--font-body);cursor:pointer;}
+  .schedule-btn:hover{background:#17392f}
+  .small-btn{border:1px solid var(--line);border-radius:8px;padding:8px 11px;background:#172329;color:var(--text);font:12px var(--font-body);cursor:pointer}
+  .small-btn.primary{background:var(--on-dim);border-color:#23634f;color:var(--on)}
+  .small-btn:hover{filter:brightness(1.12)}
+  .schedule-summary{font-size:11px;color:var(--text-dim);line-height:1.8;margin:8px 4px 0}
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:18px;z-index:1000}
+  .modal-backdrop.open{display:flex}
+  .schedule-modal{width:min(100%,430px);background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 20px 70px rgba(0,0,0,.4)}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+  .modal-head h3{font-size:17px;margin:0}
+  .modal-close{border:1px solid var(--line);background:var(--panel-2);color:var(--text);border-radius:8px;width:34px;height:34px;font-size:20px;cursor:pointer}
+  .modal-subtitle{font-size:12px;color:var(--text-dim);line-height:1.9;margin:0 0 16px}
+  .mode-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+  .mode-tab{padding:10px 8px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);color:var(--text-dim);font:12px var(--font-body);cursor:pointer}
+  .mode-tab.active{border-color:#285044;background:var(--on-dim);color:var(--on)}
+  .modal-field{display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--text-dim);margin-bottom:12px}
+  .modal-field input{width:100%;background:#091014;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:11px;font:14px var(--font-body);}
+  .modal-note{font-size:11px;color:var(--warn);line-height:1.9;background:var(--warn-dim);border-radius:9px;padding:10px;margin:12px 0}
+  .modal-actions{display:flex;gap:8px;margin-top:14px}
+  .modal-actions button{flex:1}
+  @media(max-width:520px){header{grid-template-columns:1fr auto;row-gap:14px}header h1{grid-column:1;grid-row:1}header .board-pill{grid-column:2;grid-row:1}header .header-clock{grid-column:1 / -1;grid-row:2;justify-self:center}.header-clock .clock-time{font-size:20px}}
+  @media(max-width:380px){.contact-strip{align-items:flex-start;flex-direction:column}.relay-controls{align-items:stretch}.schedule-btn{flex:1}}
+
 </style>
 
 </head>
@@ -269,15 +311,25 @@
 
   <header>
     <h1>پنل کنترل خانه<span>ESP32 · HiveMQ · MQTT</span></h1>
+    <div class="header-clock" aria-label="ساعت و تاریخ">
+      <div class="clock-time" id="headerClock">--:--:--</div>
+      <div class="clock-date" id="headerDate">در حال دریافت تاریخ…</div>
+    </div>
     <div class="board-pill">
       <div class="dot connecting" id="boardDot"></div>
       <span id="boardText">در حال اتصال…</span>
     </div>
   </header>
 
-  <div class="card">
-    <h2>کنترل رله‌ها</h2>
+  <div class="contact-strip">
+    <span>مدیریت پنل: <strong>شاهدی</strong></span>
+    <span>تماس: <a href="tel:09399636246">09399636246</a></span>
+  </div>
 
+  <div class="card">
+    <h2>کنترل رله‌ها و زمان‌بندی</h2>
+
+<div class="relay-block">
 <div class="relay-row" data-relay="1">
   <div class="relay-info">
     <div class="relay-led" id="led1"></div>
@@ -292,7 +344,14 @@
     <span class="thumb"></span>
   </label>
 </div>
+  <div class="relay-controls">
+    <button class="schedule-btn" type="button" onclick="openScheduleModal(1)">◷ تنظیم زمان‌بندی</button>
+    <button class="small-btn" type="button" onclick="clearSchedule(1)">لغو زمان‌بندی</button>
+  </div>
+  <div class="schedule-summary" id="scheduleSummary1">زمان‌بندی تنظیم نشده است.</div>
+  </div>
 
+<div class="relay-block">
 <div class="relay-row" data-relay="2">
   <div class="relay-info">
     <div class="relay-led" id="led2"></div>
@@ -307,7 +366,14 @@
     <span class="thumb"></span>
   </label>
 </div>
+  <div class="relay-controls">
+    <button class="schedule-btn" type="button" onclick="openScheduleModal(2)">◷ تنظیم زمان‌بندی</button>
+    <button class="small-btn" type="button" onclick="clearSchedule(2)">لغو زمان‌بندی</button>
+  </div>
+  <div class="schedule-summary" id="scheduleSummary2">زمان‌بندی تنظیم نشده است.</div>
+  </div>
 
+<div class="relay-block">
 <div class="relay-row" data-relay="3">
   <div class="relay-info">
     <div class="relay-led" id="led3"></div>
@@ -322,7 +388,14 @@
     <span class="thumb"></span>
   </label>
 </div>
+  <div class="relay-controls">
+    <button class="schedule-btn" type="button" onclick="openScheduleModal(3)">◷ تنظیم زمان‌بندی</button>
+    <button class="small-btn" type="button" onclick="clearSchedule(3)">لغو زمان‌بندی</button>
+  </div>
+  <div class="schedule-summary" id="scheduleSummary3">زمان‌بندی تنظیم نشده است.</div>
+  </div>
 
+<div class="relay-block">
 <div class="relay-row" data-relay="4">
   <div class="relay-info">
     <div class="relay-led" id="led4"></div>
@@ -337,7 +410,34 @@
     <span class="thumb"></span>
   </label>
 </div>
+  <div class="relay-controls">
+    <button class="schedule-btn" type="button" onclick="openScheduleModal(4)">◷ تنظیم زمان‌بندی</button>
+    <button class="small-btn" type="button" onclick="clearSchedule(4)">لغو زمان‌بندی</button>
+  </div>
+  <div class="schedule-summary" id="scheduleSummary4">زمان‌بندی تنظیم نشده است.</div>
+  </div>
 
+  </div>
+
+  <div class="modal-backdrop" id="scheduleModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" onclick="backdropClose(event)">
+    <div class="schedule-modal">
+      <div class="modal-head">
+        <h3 id="modalTitle">زمان‌بندی رله</h3>
+        <button class="modal-close" type="button" aria-label="بستن" onclick="closeScheduleModal()">×</button>
+      </div>
+      <p class="modal-subtitle" id="modalSubtitle">تنظیم زمان‌بندی</p>
+      <div class="mode-tabs">
+        <button type="button" class="mode-tab active" id="modeAfter" onclick="setScheduleMode('after')">بعد از چند دقیقه</button>
+        <button type="button" class="mode-tab" id="modeAt" onclick="setScheduleMode('at')">در ساعت مشخص</button>
+      </div>
+      <label class="modal-field" id="afterField"><span id="afterLabel">چند دقیقه دیگر؟</span><input type="number" id="scheduleMinutes" min="1" max="10080" placeholder="مثلاً ۳۰"></label>
+      <label class="modal-field" id="atField" style="display:none"><span id="atLabel">ساعت اجرا</span><input type="time" id="scheduleAtTime"></label>
+      <label class="modal-field" id="durationField" style="display:none"><span>مدت روشن‌ماندن پس از روشن‌شدن (دقیقه، اختیاری)</span><input type="number" id="scheduleRunMinutes" min="1" max="10080" placeholder="مثلاً ۳۰"></label>
+      <div class="modal-actions">
+        <button class="small-btn primary" type="button" onclick="saveModalSchedule()">ذخیره تنظیمات</button>
+        <button class="small-btn" type="button" onclick="closeScheduleModal()">انصراف</button>
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -355,6 +455,7 @@
   </div>
 
   <footer id="mqttStatus">اتصال به بروکر برقرار نیست</footer>
+  <footer>پنل اختصاصی شاهدی · <a style="color:var(--on);text-decoration:none" href="tel:09399636246">09399636246</a></footer>
 
 </div>
 
@@ -365,6 +466,8 @@ const RELAY_TOPIC       = "home/esp32/relay";
 const RELAY_STATE_TOPIC = "home/esp32/relay/state";
 const SENSOR_TOPIC      = "home/esp32/sensor";
 const STATUS_TOPIC      = "home/esp32/status";
+const SCHEDULE_TOPIC     = "home/esp32/relay/schedule";
+const SCHEDULE_STATE_TOPIC = "home/esp32/relay/schedule/state";
 
 const client = mqtt.connect(broker, {
   username: "ESP32-01",
@@ -374,6 +477,10 @@ const client = mqtt.connect(broker, {
 
 // هر رله یک تایمر "در انتظار تایید" دارد، تا اگر برد جواب ندهد کلید به حالت قبلی برگردد
 const pendingTimers = {1:null,2:null,3:null,4:null};
+
+// تنظیمات زمان‌بندی به ESP32 ارسال می‌شوند و روی خود برد اجرا می‌شوند.
+const relayStates = {1:null,2:null,3:null,4:null};
+const lastScheduleRun = {1:{on:"",off:""},2:{on:"",off:""},3:{on:"",off:""},4:{on:"",off:""}};
 
 function setBoardStatus(state){
   const dot = document.getElementById("boardDot");
@@ -385,10 +492,12 @@ function setBoardStatus(state){
 }
 
 function setRelayUI(i, on){
+  relayStates[i] = on;
   document.getElementById("sw"+i).checked = on;
   document.getElementById("sw"+i).disabled = false;
   document.getElementById("led"+i).className = "relay-led" + (on ? " on" : "");
   document.getElementById("state"+i).textContent = on ? "روشن" : "خاموش";
+
 }
 
 function setRelayPending(i){
@@ -402,6 +511,7 @@ client.on("connect", () => {
   client.subscribe(SENSOR_TOPIC);
   client.subscribe(RELAY_STATE_TOPIC);
   client.subscribe(STATUS_TOPIC);
+  client.subscribe(SCHEDULE_STATE_TOPIC);
 });
 
 client.on("reconnect", () => {
@@ -413,22 +523,135 @@ client.on("close", () => {
   setBoardStatus("connecting");
 });
 
-function toggleRelay(i, el){
-  const on = el.checked;
+function sendRelayCommand(i, on){
+  if (!client || !client.connected) {
+    document.getElementById("state"+i).textContent = "اتصال MQTT برقرار نیست";
+    document.getElementById("sw"+i).checked = relayStates[i] === true;
+    return;
+  }
   setRelayPending(i);
-
-  client.publish(RELAY_TOPIC, "relay" + i + "_" + (on ? "on" : "off"));
-
-  // اگر تا ۵ ثانیه دیگر تاییدیه‌ی وضعیت از برد نرسید، کلید را به حالت قبلی برگردان
+  client.publish(RELAY_TOPIC, "relay" + i + "_" + (on ? "on" : "off"), {qos: 1}, (err) => {
+    if (err) {
+      clearTimeout(pendingTimers[i]);
+      document.getElementById("state"+i).textContent = "خطا در ارسال فرمان";
+      document.getElementById("sw"+i).checked = relayStates[i] === true;
+      document.getElementById("sw"+i).disabled = false;
+    }
+  });
   clearTimeout(pendingTimers[i]);
   pendingTimers[i] = setTimeout(() => {
-    // اگر برد آفلاین است پیام خطا نشان بده و کلید را برگردان
     document.getElementById("state"+i).textContent = "بدون پاسخ از برد";
     document.getElementById("led"+i).className = "relay-led";
-    document.getElementById("sw"+i).checked = !on;
+    document.getElementById("sw"+i).checked = relayStates[i] === true;
     document.getElementById("sw"+i).disabled = false;
   }, 5000);
 }
+
+function toggleRelay(i, el){
+  sendRelayCommand(i, el.checked);
+}
+
+let activeScheduleRelay = null;
+let activeScheduleMode = "after";
+const scheduleStorageKey = "shahidi-esp32-relay-schedules-v2";
+let schedules = {};
+try { schedules = JSON.parse(localStorage.getItem(scheduleStorageKey) || "{}") || {}; } catch(e) { schedules = {}; }
+
+function updateHeaderClock(){
+  const now = new Date();
+  document.getElementById("headerClock").textContent = now.toLocaleTimeString("fa-IR", {hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:false});
+  document.getElementById("headerDate").textContent = now.toLocaleDateString("fa-IR", {weekday:"long", year:"numeric", month:"long", day:"numeric"});
+}
+updateHeaderClock();
+setInterval(updateHeaderClock, 1000);
+
+function renderScheduleSummary(i){
+  const cfg = schedules[i];
+  const target = document.getElementById("scheduleSummary"+i);
+  if(!cfg){ target.textContent = "زمان‌بندی تنظیم نشده است."; return; }
+  const action = cfg.action === "on" ? "روشن‌شدن" : "خاموش‌شدن";
+  const timing = cfg.mode === "at" ? "هر روز ساعت " + cfg.time : "پس از " + cfg.minutes + " دقیقه";
+  let extra = cfg.runMinutes ? " · مدت روشن‌ماندن: " + cfg.runMinutes + " دقیقه" : "";
+  target.textContent = action + " " + timing + extra + (cfg.pending ? " · ارسال‌شده به برد" : " · ذخیره‌شده در برد") + (cfg.boardMessage ? " · " + cfg.boardMessage : "");
+}
+
+function openScheduleModal(i){
+  activeScheduleRelay = i;
+  const isOn = relayStates[i] === true;
+  const action = isOn ? "off" : "on";
+  const cfg = schedules[i] || {};
+  document.getElementById("modalTitle").textContent = "زمان‌بندی رله " + i;
+  document.getElementById("modalSubtitle").textContent = isOn
+    ? "این رله روشن است؛ مشخص کن چه زمانی خاموش شود."
+    : "این رله خاموش است؛ مشخص کن چه زمانی روشن شود.";
+  document.getElementById("afterLabel").textContent = isOn ? "خاموش‌شدن پس از چند دقیقه" : "روشن‌شدن پس از چند دقیقه";
+  document.getElementById("atLabel").textContent = isOn ? "ساعت خاموش‌شدن" : "ساعت روشن‌شدن";
+  document.getElementById("scheduleMinutes").value = cfg.minutes || "";
+  document.getElementById("scheduleAtTime").value = cfg.time || "";
+  document.getElementById("scheduleRunMinutes").value = cfg.runMinutes || "";
+  document.getElementById("durationField").style.display = isOn ? "none" : "flex";
+  document.getElementById("scheduleModal").dataset.action = action;
+  setScheduleMode(cfg.mode || "after");
+  document.getElementById("scheduleModal").classList.add("open");
+}
+function closeScheduleModal(){document.getElementById("scheduleModal").classList.remove("open");}
+function backdropClose(event){if(event.target.id === "scheduleModal") closeScheduleModal();}
+function setScheduleMode(mode){
+  activeScheduleMode = mode;
+  document.getElementById("afterField").style.display = mode === "after" ? "flex" : "none";
+  document.getElementById("atField").style.display = mode === "at" ? "flex" : "none";
+  document.getElementById("modeAfter").classList.toggle("active", mode === "after");
+  document.getElementById("modeAt").classList.toggle("active", mode === "at");
+}
+function saveModalSchedule(){
+  if(!activeScheduleRelay) return;
+  if(!client || !client.connected){
+    alert("اتصال MQTT برقرار نیست؛ زمان‌بندی به برد ارسال نشد.");
+    return;
+  }
+  const action = document.getElementById("scheduleModal").dataset.action;
+  const minutes = Number(document.getElementById("scheduleMinutes").value);
+  const time = document.getElementById("scheduleAtTime").value;
+  const runRaw = document.getElementById("scheduleRunMinutes").value;
+  if(activeScheduleMode === "after" && (!Number.isFinite(minutes) || minutes < 1 || minutes > 10080)){
+    alert("لطفاً مدت زمان را بین ۱ تا ۱۰۰۸۰ دقیقه وارد کن."); return;
+  }
+  if(activeScheduleMode === "at" && !time){alert("لطفاً ساعت را مشخص کن."); return;}
+  if(action === "on" && runRaw && (!Number.isFinite(Number(runRaw)) || Number(runRaw) < 1 || Number(runRaw) > 10080)){
+    alert("مدت روشن‌ماندن باید بین ۱ تا ۱۰۰۸۰ دقیقه باشد."); return;
+  }
+  const cfg = {
+    relay: activeScheduleRelay,
+    action,
+    mode: activeScheduleMode,
+    minutes: activeScheduleMode === "after" ? Math.floor(minutes) : 0,
+    time: activeScheduleMode === "at" ? time : "",
+    runMinutes: action === "on" && runRaw ? Math.floor(Number(runRaw)) : 0
+  };
+  client.publish(SCHEDULE_TOPIC, JSON.stringify(cfg), {qos:1}, (err) => {
+    if(err){
+      alert("ارسال زمان‌بندی ناموفق بود. اتصال MQTT را بررسی کن.");
+      return;
+    }
+    schedules[activeScheduleRelay] = {...cfg, pending:true};
+    try { localStorage.setItem(scheduleStorageKey, JSON.stringify(schedules)); } catch(e) {}
+    renderScheduleSummary(activeScheduleRelay);
+    closeScheduleModal();
+  });
+}
+function clearSchedule(i){
+  if(!client || !client.connected){
+    alert("اتصال MQTT برقرار نیست؛ لغو زمان‌بندی به برد ارسال نشد.");
+    return;
+  }
+  client.publish(SCHEDULE_TOPIC, JSON.stringify({relay:i, clear:true}), {qos:1}, (err) => {
+    if(err){ alert("ارسال فرمان لغو زمان‌بندی ناموفق بود."); return; }
+    delete schedules[i];
+    try { localStorage.setItem(scheduleStorageKey, JSON.stringify(schedules)); } catch(e) {}
+    renderScheduleSummary(i);
+  });
+}
+for(let i=1;i<=4;i++) renderScheduleSummary(i);
 
 client.on("message", (topic, message) => {
   const payload = message.toString();
@@ -443,6 +666,23 @@ client.on("message", (topic, message) => {
 
   if(topic === STATUS_TOPIC){
     setBoardStatus(payload === "online" ? "online" : "offline");
+  }
+
+  if(topic === SCHEDULE_STATE_TOPIC){
+    try{
+      const data = JSON.parse(payload);
+      if(data.relay && schedules[data.relay]){
+        if(data.ok){
+          schedules[data.relay].pending = false;
+          schedules[data.relay].boardMessage = data.message || "تأییدشده توسط برد";
+        } else {
+          schedules[data.relay].pending = true;
+          schedules[data.relay].boardMessage = data.message || "خطا در ثبت زمان‌بندی";
+        }
+        try { localStorage.setItem(scheduleStorageKey, JSON.stringify(schedules)); } catch(e) {}
+        renderScheduleSummary(data.relay);
+      }
+    }catch(e){}
   }
 
   if(topic === RELAY_STATE_TOPIC){
