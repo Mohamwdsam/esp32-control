@@ -453,22 +453,36 @@ client.on("close", () => {
   setBoardStatus("connecting");
 });
 
-function toggleRelay(i, el){
+// تابع باید در سطح window باشد، چون کنترل‌های HTML با onchange آن را صدا می‌زنند.
+window.toggleRelay = function(i, el){
   const on = el.checked;
+  if (!client.connected) {
+    document.getElementById("state"+i).textContent = "اتصال MQTT برقرار نیست";
+    el.checked = !on;
+    return;
+  }
+
   setRelayPending(i);
+  client.publish(RELAY_TOPIC, "relay" + i + "_" + (on ? "on" : "off"), { qos: 0 }, (err) => {
+    if (err) {
+      clearTimeout(pendingTimers[i]);
+      document.getElementById("state"+i).textContent = "خطا در ارسال فرمان";
+      document.getElementById("led"+i).className = "relay-led";
+      el.checked = !on;
+      el.disabled = false;
+      console.error("MQTT publish failed:", err);
+    }
+  });
 
-  client.publish(RELAY_TOPIC, "relay" + i + "_" + (on ? "on" : "off"));
-
-  // اگر تا ۵ ثانیه دیگر تاییدیه‌ی وضعیت از برد نرسید، کلید را به حالت قبلی برگردان
+  // اگر تا ۵ ثانیه تاییدیه وضعیت از برد نرسید، کلید به حالت قبلی برگردد.
   clearTimeout(pendingTimers[i]);
   pendingTimers[i] = setTimeout(() => {
-    // اگر برد آفلاین است پیام خطا نشان بده و کلید را برگردان
     document.getElementById("state"+i).textContent = "بدون پاسخ از برد";
     document.getElementById("led"+i).className = "relay-led";
     document.getElementById("sw"+i).checked = !on;
     document.getElementById("sw"+i).disabled = false;
   }, 5000);
-}
+};
 
 client.on("message", (topic, message) => {
   const payload = message.toString();
